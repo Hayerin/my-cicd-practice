@@ -1,0 +1,50 @@
+# 워크플로우 이름 (GitHub Actions 탭에 표시됨)
+name: CI/CD Practice
+
+# 언제 이 자동화를 실행할지 (트리거)
+on:
+  push:
+    branches: [ main ]   # main 브랜치에 푸시되면 실행
+
+# 실행할 작업들
+jobs:
+  # 첫 번째 job: 테스트
+  test:
+    runs-on: ubuntu-latest   # 어떤 가상 컴퓨터에서 돌릴지
+    steps:
+      - name: 코드 가져오기
+        uses: actions/checkout@v4   # 내 저장소 코드를 가상 컴퓨터로 복사
+
+      - name: Node.js 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 테스트 실행
+        run: node test.js   # 위에서 만든 체크 실행
+
+  # 두 번째 job: 배포 (테스트가 끝나야 실행됨)
+  deploy:
+    needs: test   # test job이 성공해야만 deploy 실행
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 코드 가져오기
+        uses: actions/checkout@v4
+
+      - name: Pages 설정
+        uses: actions/configure-pages@v4
+
+      - name: 파일 업로드
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'   # 현재 폴더 전체를 배포 대상으로
+
+      - name: GitHub Pages에 배포
+        id: deployment
+        uses: actions/deploy-pages@v4
